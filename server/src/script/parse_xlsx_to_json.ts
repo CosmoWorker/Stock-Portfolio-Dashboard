@@ -1,0 +1,76 @@
+import * as XLSX from 'xlsx';
+import fs from "node:fs";
+import path from "node:path";
+
+const filepath = path.join(process.cwd(), "./data/F9001561_ADDBA737E8_B72562937A.xlsx")
+const workbook = XLSX.readFile(filepath)
+
+interface PortfolioItem {
+    id: number;
+    sector: string;
+    name: string;
+    purchasePrice: number;
+    quantity: number;
+    investment: number;
+    portfolioPercent: number;
+    exchange: 'BSE' | 'NSE';
+    ticker: string;
+    yahooSymbol: string;
+    googleSymbol: string;
+}
+
+const sheetName = workbook.SheetNames[0]
+if (!sheetName) {
+    throw new Error(`Possible Empty Sheetname`)
+}
+const worksheet = workbook.Sheets[sheetName]
+
+const jrow = XLSX.utils.sheet_to_json<any[]>(worksheet!, { header: 1, defval: null })
+
+const portfolio: PortfolioItem[] = []
+let currSector = "General";
+
+for (const row of jrow) {
+    const col0 = row[0]; // No.
+    const col1 = row[1]; // Particulars
+    const col2 = row[2] // Purchase Price
+    const col3 = row[3] // qty
+    const col4 = row[4] // investment
+    const col5 = row[5] // portfolio (%)
+    const col6 = row[6] // exchange ticker symbol
+
+    if (!col1 || col1 === 'Particulars') {
+        continue;
+    }
+
+    if (col0 === null || col0 === undefined) {
+        currSector = String(col1).trim();
+        continue;
+    }
+
+    const rawTicker = String(col6 || '').trim();
+    const portfolioPercent = Number(col5.replace("%"))
+    const isNumericBse = /^\d+$/.test(rawTicker);
+    const exchange = isNumericBse ? 'BSE' : 'NSE';
+
+    const yahooSymbol = isNumericBse ? `${rawTicker}.BO` : `${rawTicker}.NS`
+    const googleSymbol = isNumericBse ? `${rawTicker}.BOM` : `${rawTicker}.NSE`
+
+    portfolio.push({
+        id: portfolio.length + 1,
+        sector: currSector,
+        name: String(col1).trim(),
+        purchasePrice: Number(col2 || 0),
+        quantity: Number(col3 || 0),
+        investment: Number(col4 || 0),
+        portfolioPercent: portfolioPercent,
+        exchange: exchange,
+        ticker: rawTicker,
+        yahooSymbol: yahooSymbol,
+        googleSymbol: googleSymbol
+    })
+}
+
+
+const outputPath = path.join(process.cwd(), "./data/Parsed_Raw_Portfolio_Data.json")
+fs.writeFileSync(outputPath, JSON.stringify(portfolio, null, 2), 'utf-8')
