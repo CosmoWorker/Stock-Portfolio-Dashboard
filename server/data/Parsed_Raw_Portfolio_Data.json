@@ -85,9 +85,9 @@
     "quantity": 16,
     "investment": 76400,
     "exchange": "NSE",
-    "ticker": "LTIM",
-    "yahooSymbol": "LTIM.NS",
-    "googleSymbol": "LTIM:NSE",
+    "ticker": "LTM",
+    "yahooSymbol": "LTM.NS",
+    "googleSymbol": "LTM:NSE",
     "portfolioPercent": 4.55
   },
   {

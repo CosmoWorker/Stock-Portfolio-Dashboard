@@ -20,6 +20,10 @@ interface PortfolioItem {
     googleSymbol: string;
 }
 
+const tickerRenames: Record<string, string> = {
+    "LTIM": "LTM"
+}
+
 const getBseScriptIds = async () => {
     const res = await axios.get("https://api.kite.trade/instruments/BSE");
     const csv = res.data;
@@ -67,18 +71,20 @@ for (const row of jrow) {
     }
 
     const rawTicker = String(col6 || '').trim();
-    const isNumericBse = /^\d+$/.test(rawTicker);
+    const resolvedTicker = tickerRenames[rawTicker] || rawTicker;
+
+    const isNumericBse = /^\d+$/.test(resolvedTicker);
     const exchange = isNumericBse ? 'BSE' : 'NSE';
 
     let yahooSymbol = ''
     if (isNumericBse) {
-        const scripId = bseIdMap.get(rawTicker) || rawTicker;
+        const scripId = bseIdMap.get(resolvedTicker) || resolvedTicker;
         yahooSymbol = `${scripId}.BO`
     } else {
-        yahooSymbol = `${rawTicker}.NS`
+        yahooSymbol = `${resolvedTicker}.NS`
     }
 
-    const googleSymbol = isNumericBse ? `${rawTicker}:BOM` : `${rawTicker}:NSE`
+    const googleSymbol = isNumericBse ? `${resolvedTicker}:BOM` : `${resolvedTicker}:NSE`
 
     portfolio.push({
         id: portfolio.length + 1,
@@ -88,7 +94,7 @@ for (const row of jrow) {
         quantity: Number(col3 || 0),
         investment: Number(col4 || 0),
         exchange: exchange,
-        ticker: rawTicker,
+        ticker: resolvedTicker,
         yahooSymbol: yahooSymbol,
         googleSymbol: googleSymbol,
     })
