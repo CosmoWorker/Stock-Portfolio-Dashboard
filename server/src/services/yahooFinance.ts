@@ -19,5 +19,6 @@ export const getCurrentMarketPrices = async (symbols: string[]) => {
     }
     catch (e) {
         console.error("Error during Yahoo Fetching: ", e)
+        throw new Error(`Error during yahoo fetching ${e}`)
     }
 }
