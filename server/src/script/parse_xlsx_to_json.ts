@@ -1,6 +1,7 @@
 import XLSX from "xlsx";
 import fs from "node:fs";
 import path from "node:path";
+import axios from "axios"
 
 const filepath = path.join(process.cwd(), "./data/F9001561_ADDBA737E8_B72562937A.xlsx")
 const workbook = XLSX.readFile(filepath)
@@ -19,6 +20,23 @@ interface PortfolioItem {
     googleSymbol: string;
 }
 
+const getBseScriptIds = async () => {
+    const res = await axios.get("https://api.kite.trade/instruments/BSE");
+    const csv = res.data;
+    const lines = csv.split("\n");
+
+    let bseMap = new Map<string, string>();
+    for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        if (cols.length > 2) {
+            const exchangeToken = cols[1]; // numeric ticker e.g., '532174'
+            const scripId = cols[2];       // alpha ticker e.g., 'ICICIBANK'
+            bseMap.set(exchangeToken, scripId);
+        }
+    }
+    return bseMap;
+}
+
 const sheetName = workbook.SheetNames[0]
 if (!sheetName) {
     throw new Error(`Possible Empty Sheetname`)
@@ -27,6 +45,7 @@ const worksheet = workbook.Sheets[sheetName]
 
 const jrow = XLSX.utils.sheet_to_json<any[]>(worksheet!, { header: 1, defval: null })
 
+const bseIdMap = await getBseScriptIds()
 let portfolio: PortfolioItem[] = []
 let currSector = "General";
 
@@ -51,7 +70,14 @@ for (const row of jrow) {
     const isNumericBse = /^\d+$/.test(rawTicker);
     const exchange = isNumericBse ? 'BSE' : 'NSE';
 
-    const yahooSymbol = isNumericBse ? `${rawTicker}.BO` : `${rawTicker}.NS`
+    let yahooSymbol = ''
+    if (isNumericBse) {
+        const scripId = bseIdMap.get(rawTicker) || rawTicker;
+        yahooSymbol = `${scripId}.BO`
+    } else {
+        yahooSymbol = `${rawTicker}.NS`
+    }
+
     const googleSymbol = isNumericBse ? `${rawTicker}:BOM` : `${rawTicker}:NSE`
 
     portfolio.push({
