@@ -1,15 +1,19 @@
 import * as cheerio from "cheerio"
 import axios from "axios"
+import { parseNumber } from "../helper/utils.js";
 
 
 const UA = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/[IP_ADDRESS] Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept-Language": "en-US,en;q=0.9",
 }
 
-export const getGoogleFinanceMetrics = async (symbol: string) => {
+export interface FundaMetrics {
+    peRatio: number | null;
+    latestEarnings: number | null;
+}
 
-
+export const getGoogleFinanceMetrics = async (symbol: string): Promise<FundaMetrics> => {
     try {
         const url = `https://google.com/finance/quote/${symbol}`
         const response = await axios.get(url, {
@@ -17,36 +21,31 @@ export const getGoogleFinanceMetrics = async (symbol: string) => {
             timeout: 5000
         })
         const $ = cheerio.load(response.data)
-        let peRatio: number | null = null;
-        let latestEarnings: number | null = null;
+        const out: FundaMetrics = { peRatio: null, latestEarnings: null }
         $('.KxsRFb').each((_, el) => {
-            const label = $(el).find(".dO6ijd").text().trim().toLowerCase();
-            const val = $(el).find(".dO6ijd").first().text();
+            const label = $(el).find(".SwQK7").text().trim().toLowerCase();
+            const val = parseNumber($(el).find(".dO6ijd").text());
 
-            if (label.startsWith("p/e ratio")) {
-                const parsed = parseFloat(val);
-                if (!isNaN(parsed)) peRatio = parsed;
-            }
-            if (label.startsWith("eps")) {
-                const parsed = parseFloat(val);
-                if (!isNaN(parsed)) latestEarnings = parsed;
-            }
+            if (label === "p/e ratio") out.peRatio = val
+            else if (label === "eps") out.latestEarnings = val
+            // may add cmp
         });
 
-        $('div').each((_, el) => {
-            const text = $(el).text().trim().toLowerCase()
-            if (/^p\/e ratio$/i.test(text) && !peRatio) {
-                const siblingText = $(el).next().text().trim()
-                if (siblingText) { peRatio = parseFloat(siblingText) }
-            }
-            if (/^eps$/i.test(text) && !latestEarnings) {
-                const siblingText = $(el).next().text().trim()
-                if (siblingText) { latestEarnings = parseFloat(siblingText) }
-            }
+        if (out.peRatio === null || out.latestEarnings === null) {
+            $("div")
+                .filter((_, el) => $(el).children().length === 0)
+                .each((_, el) => {
+                    const label = $(el).text().trim().toLowerCase()
+                    if (label === "p/e ratio" && out.peRatio === null) {
+                        out.peRatio = parseNumber($(el).next().text())
+                    } else if (label === "eps" && out.latestEarnings === null) {
+                        out.latestEarnings = parseNumber($(el).next().text())
+                    }
+                    //might add cmp fallback    
+                })
+        }
 
-        })
-
-        return { peRatio, latestEarnings }
+        return out
 
     } catch (e) {
         console.error("Error fetching Metrics: ", e)
@@ -55,23 +54,22 @@ export const getGoogleFinanceMetrics = async (symbol: string) => {
 }
 
 // fallback highly likely
-const getScreenerMetrics = async (symbol: string) => {
+export const getScreenerMetrics = async (ticker: string): Promise<FundaMetrics> => {
     try {
-        const url = `https://screener.in/company/${symbol}/consolidated/`
+        const url = `https://screener.in/company/${ticker}/consolidated/`
         const response = await axios.get(url, {
             headers: UA,
             timeout: 5000
         })
 
         const $ = cheerio.load(response.data)
-        let stockPE: number | null = null;
-        let epsTTM: number | null = null;
+        const out: FundaMetrics = { peRatio: null, latestEarnings: null }
 
         $('#top-ratios li').each((_, el) => {
             const label = $(el).find('.name').text().trim().toLowerCase();
+            const value = $(el).find('.value .number').text().trim()
             if (/^stock p\/e$/i.test(label)) {
-                const val = $(el).find('.value .number').text().trim()
-                const stockPE = val.replace(/\s+/g, '')
+                out.peRatio = parseNumber(value.replace(/\s+/g, ''))
                 return false
             }
         })
@@ -81,14 +79,19 @@ const getScreenerMetrics = async (symbol: string) => {
 
             if (/eps in rs/i.test(rowText)) {
                 const latestTd = $(el).find('td').last().text().trim();
-                if (latestTd) epsTTM = parseFloat(latestTd.replace(/s+/g, ''))
+                if (latestTd) out.latestEarnings = parseNumber(latestTd.replace(/\s+/g, ''))
                 return false
             }
         })
 
-        return { peRatio: stockPE, epsTTM }
+        return out
     } catch (e) {
         console.error("Error fetching Metrics: ", e)
-        throw new Error(`Error fetching Screener metrics for ${symbol}: ${e}`)
+        throw new Error(`Error fetching Screener metrics for ${ticker}: ${e}`)
     }
 }
+
+(async () => {
+    console.log(await getGoogleFinanceMetrics("544028:BOM"))
+    // console.log(await getScreenerMetrics("AFFLE"))
+})();   
