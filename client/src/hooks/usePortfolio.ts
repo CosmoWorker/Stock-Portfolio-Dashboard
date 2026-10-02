@@ -28,7 +28,7 @@ export function usePortfolio(): PortfolioState {
 
   const fetchPortfolio = useCallback(async () => {
     try {
-      const URL = import.meta.env.VITE_API_URL ?? ''
+      const URL = import.meta.env.API_URL ?? ''
       const res = await fetch(`${URL}/api/portfolio`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json: PortfolioResponse = await res.json()
