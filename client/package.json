@@ -11,7 +11,11 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "apex-grid": "^3.5.0",
+    "apexcharts": "^7.7.0",
     "react": "^19.2.8",
+    "react-apex-grid": "^0.1.0",
+    "react-apexcharts": "^2.1.1",
     "react-dom": "^19.2.8",
     "tailwindcss": "^4.3.3"
   },
