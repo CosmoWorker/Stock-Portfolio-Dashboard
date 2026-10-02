@@ -23,8 +23,10 @@ export function refreshFundametrics(stocks: StockRef[]): Promise<void> {
         const stale = stocks.filter(
             (s) => Date.now() - (cache.get(s.yahooSymbol)?.fetchedAt ?? 0) > TTL_MS
         )
-        await mapLimit(stale, 5, async (s) => {
+        const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
+        await mapLimit(stale, 1, async (s) => {
             cache.set(s.yahooSymbol, { ...(await scrape(s)), fetchedAt: Date.now() })
+            await delay(800) // giving delay between requests
         })
     })().finally(() => { refreshing = null })
     return refreshing

@@ -18,7 +18,8 @@ export const getGoogleFinanceMetrics = async (symbol: string): Promise<FundaMetr
         const url = `https://google.com/finance/quote/${symbol}`
         const response = await axios.get(url, {
             headers: UA,
-            timeout: 5000
+            timeout: 10000,
+            family: 4,          // force IPv4 — IPv6 is unreachable on this host
         })
         const $ = cheerio.load(response.data)
         const out: FundaMetrics = { peRatio: null, latestEarnings: null }
@@ -59,7 +60,8 @@ export const getScreenerMetrics = async (ticker: string): Promise<FundaMetrics> 
         const url = `https://screener.in/company/${ticker}/consolidated/`
         const response = await axios.get(url, {
             headers: UA,
-            timeout: 5000
+            timeout: 10000,
+            family: 4,          // force IPv4 if ipv6 is unreachable
         })
 
         const $ = cheerio.load(response.data)
@@ -91,7 +93,7 @@ export const getScreenerMetrics = async (ticker: string): Promise<FundaMetrics> 
     }
 }
 
-(async () => {
-    console.log(await getGoogleFinanceMetrics("544028:BOM"))
-    // console.log(await getScreenerMetrics("AFFLE"))
-})();   
+// (async () => {
+//     // console.log(await getGoogleFinanceMetrics("544028:BOM"))
+//     console.log(await getScreenerMetrics("AFFLE"))
+// })();   
