@@ -1,11 +1,14 @@
 import { memo, useMemo, useRef, useState } from 'react'
-import { createApexGrid } from 'react-apex-grid'
+import { createApexGrid, type ApexGridElement } from 'react-apex-grid'
 import type { ColumnConfiguration } from 'apex-grid'
 import type { Holding, SectorData } from '../types'
 import { fmtINR, fmtPct, glClass } from '../utils/format'
 
 // Typed grid created once at module scope
 const HoldingGrid = createApexGrid<Holding>()
+
+// apex-grid 3.5 formatter / cellClasses callback shape
+type FmtParams = { value: unknown; record: Holding }
 
 interface Props {
   name: string
@@ -14,7 +17,8 @@ interface Props {
 
 function SectorSectionInner({ name, sector }: Props) {
   const [open, setOpen] = useState(true)
-  const gridRef = useRef<HTMLElement>(null)
+  // apex-grid ref must be typed to ApexGridElement<T>
+  const gridRef = useRef<ApexGridElement<Holding>>(null)
 
   const { totalInvestment, totalPresentValue, totalGainLoss, stocks } = sector
   const glPct = totalInvestment > 0 ? ((totalGainLoss / totalInvestment) * 100) : 0
@@ -23,7 +27,7 @@ function SectorSectionInner({ name, sector }: Props) {
     {
       key: 'name',
       headerText: 'Particulars',
-      width: 180,
+      width: '180px',
       pin: 'start',
       sort: true,
       filter: true,
@@ -31,70 +35,75 @@ function SectorSectionInner({ name, sector }: Props) {
     {
       key: 'exchange',
       headerText: 'Exchange',
-      width: 90,
+      width: '90px',
       sort: true,
     },
     {
       key: 'purchasePrice',
       headerText: 'Buy Price',
       dataType: 'number',
-      width: 100,
+      width: '100px',
       sort: true,
-      formatter: ({ value }) => value != null ? `₹${Number(value).toFixed(2)}` : '—',
+      formatter: ({ value }: FmtParams) =>
+        value != null ? `₹${Number(value).toFixed(2)}` : '—',
     },
     {
       key: 'quantity',
       headerText: 'Qty',
       dataType: 'number',
-      width: 70,
+      width: '70px',
       sort: true,
     },
     {
       key: 'investment',
       headerText: 'Investment',
       dataType: 'number',
-      width: 120,
+      width: '120px',
       sort: true,
-      formatter: ({ value }) => value != null ? fmtINR(Number(value), true) : '—',
+      formatter: ({ value }: FmtParams) =>
+        value != null ? fmtINR(Number(value), true) : '—',
     },
     {
       key: 'portfolioPercent',
       headerText: 'Port %',
       dataType: 'number',
-      width: 80,
+      width: '80px',
       sort: true,
-      formatter: ({ value }) => value != null ? `${Number(value).toFixed(2)}%` : '—',
+      formatter: ({ value }: FmtParams) =>
+        value != null ? `${Number(value).toFixed(2)}%` : '—',
     },
     {
       key: 'cmp',
       headerText: 'CMP',
       dataType: 'number',
-      width: 100,
+      width: '100px',
       sort: true,
-      formatter: ({ value }) => value != null ? `₹${Number(value).toFixed(2)}` : '—',
+      formatter: ({ value }: FmtParams) =>
+        value != null ? `₹${Number(value).toFixed(2)}` : '—',
     },
     {
       key: 'presentValue',
       headerText: 'Present Value',
       dataType: 'number',
-      width: 120,
+      width: '120px',
       sort: true,
-      formatter: ({ value }) => value != null ? fmtINR(Number(value), true) : '—',
+      formatter: ({ value }: FmtParams) =>
+        value != null ? fmtINR(Number(value), true) : '—',
     },
     {
       key: 'gainloss',
       headerText: 'Gain/Loss',
       dataType: 'number',
-      width: 130,
+      width: '130px',
       sort: true,
-      formatter: ({ value, record }) => {
+      formatter: ({ value, record }: FmtParams) => {
         if (value == null) return '—'
         const n = Number(value)
         const pct = record?.gainlossPercentage ?? 0
         const sign = n >= 0 ? '+' : ''
         return `${sign}${fmtINR(n, true)} (${fmtPct(pct)})`
       },
-      cellClasses: ({ value }) => {
+      cellClasses: ({ value }: FmtParams) => {
         const n = Number(value ?? 0)
         return n > 0 ? 'gain' : n < 0 ? 'loss' : 'neutral'
       },
@@ -103,17 +112,19 @@ function SectorSectionInner({ name, sector }: Props) {
       key: 'peRatio',
       headerText: 'P/E',
       dataType: 'number',
-      width: 80,
+      width: '80px',
       sort: true,
-      formatter: ({ value }) => value != null ? Number(value).toFixed(2) : 'N/A',
+      formatter: ({ value }: FmtParams) =>
+        value != null ? Number(value).toFixed(2) : 'N/A',
     },
     {
       key: 'latestEarnings',
       headerText: 'EPS',
       dataType: 'number',
-      width: 80,
+      width: '80px',
       sort: true,
-      formatter: ({ value }) => value != null ? `₹${Number(value).toFixed(2)}` : 'N/A',
+      formatter: ({ value }: FmtParams) =>
+        value != null ? `₹${Number(value).toFixed(2)}` : 'N/A',
     },
   ], [])
 

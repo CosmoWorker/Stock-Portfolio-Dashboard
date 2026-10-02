@@ -43,8 +43,8 @@ export function SectorTreemap({ sectors }: Props) {
     tooltip: {
       theme: 'light',
       y: {
-        formatter: (val, { seriesIndex, dataPointIndex }) => {
-          const stock = Object.values(sectors)[seriesIndex]?.stocks[dataPointIndex]
+        formatter: (val: number, opts: any) => {
+          const stock = Object.values(sectors)[opts?.seriesIndex]?.stocks[opts?.dataPointIndex]
           if (!stock) return `₹${val}`
           const sign = stock.gainlossPercentage >= 0 ? '+' : ''
           return `₹${val.toLocaleString('en-IN')} (${sign}${stock.gainlossPercentage.toFixed(2)}%)`
