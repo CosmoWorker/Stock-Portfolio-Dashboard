@@ -36,7 +36,6 @@ export default function App() {
 
   return (
     <div className="dashboard">
-      {/* Headline */}
       <HeadlineBand
         summary={data.summary}
         history={history}
@@ -44,7 +43,6 @@ export default function App() {
         source={source}
       />
 
-      {/* Charts row */}
       <div className="charts-row">
         <SectorTreemap sectors={data.sectors} />
         <SectorBars sectors={data.sectors} />

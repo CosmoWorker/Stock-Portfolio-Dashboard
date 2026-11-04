@@ -2,7 +2,9 @@ import YahooFinance from "yahoo-finance2";
 
 const yahooFinance = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
-export const getCurrentMarketPrices = async (symbols: string[], retries = 1): Promise<Map<string, any>> => {
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+export const getCurrentMarketPrices = async (symbols: string[], retries = 4): Promise<Map<string, any>> => {
     try {
         const quotes = await yahooFinance.quote(symbols, {
             fields: ["symbol", "regularMarketPrice", "preMarketPrice", "postMarketPrice", "trailingPE", "epsTrailingTwelveMonths"]
@@ -16,13 +18,19 @@ export const getCurrentMarketPrices = async (symbols: string[], retries = 1): Pr
             });
         }
         return priceMap;
-    } catch (e) {
+    } catch (e: any) {
+        const is429 = e?.message?.includes('429') || e?.statusCode === 429
         if (retries > 0) {
-            console.warn("fetch timed out/failed, retrying once...");
-            await new Promise((r) => setTimeout(r, 600));
-            return getCurrentMarketPrices(symbols, retries - 1);
+            // 429 = IP rate-limited by Yahoo: wait much longer (exponential backoff)
+            // other errors: short retry
+            const wait = is429
+                ? (5 - retries) * 8000  // 8s, 16s, 24s, 32s across retries
+                : 1500
+            console.warn(`Yahoo fetch failed (${is429 ? '429 rate-limit' : 'error'}), retrying in ${wait}ms... (${retries} left)`)
+            await sleep(wait)
+            return getCurrentMarketPrices(symbols, retries - 1)
         }
-        console.error("Error during Yahoo Fetching: ", e);
-        throw new Error(`Error during yahoo fetching ${e}`);
+        console.error("Error during Yahoo Fetching: ", e)
+        throw new Error(`Error during yahoo fetching ${e}`)
     }
 };
