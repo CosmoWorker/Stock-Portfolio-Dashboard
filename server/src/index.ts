@@ -23,11 +23,12 @@ app.get("/api/portfolio", async (_, res) => {
 
   try {
     if (!inflight) {
-      inflight = setPortfolio().finally(() => { inflight = null })
+      inflight = setPortfolio()
     }
 
     const data = await inflight
     cachedResponse = { data, timestamp: Date.now() }
+    inflight = null
     return res.json({ source: "live", ...data })
 
   } catch (e) {
