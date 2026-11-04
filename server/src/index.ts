@@ -42,6 +42,4 @@ app.get("/health", (_, res) => {
   res.json({ status: "ok", timestamp: new Date() })
 })
 
-const PORT = Number(process.env.PORT) || Number(process.env.SERVER_PORT) || 3000
-
-app.listen(PORT, "0.0.0.0", () => console.log(`Server started on port ${PORT}...`))
+app.listen(process.env["SERVER_PORT"], () => console.log("server started..."))
